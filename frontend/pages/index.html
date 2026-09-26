@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Speech-Battle — Тренажёр переговоров</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="js/auth-gate.js" data-sb-gate="user"></script>
+</head>
+<body>
+  <nav class="sb-nav" aria-label="Основная навигация">
+    <div class="sb-nav__inner">
+      <a class="sb-nav__brand" href="index.html">
+        <img src="assets/media/logo.png" alt="">
+        Speech-Battle
+      </a>
+
+      <button class="sb-nav__toggle" type="button" id="nav-toggle" aria-label="Открыть меню" aria-expanded="false">
+        ☰
+      </button>
+
+      <ul class="sb-nav__links" id="nav-links">
+        <li><a class="sb-nav__link sb-nav__link--active" href="index.html">Главная</a></li>
+        <li><a class="sb-nav__link" href="history.html">История переговоров</a></li>
+        <li><a class="sb-nav__link" href="profile.html">Профиль</a></li>
+        <li><button class="sb-nav__link sb-nav__link--btn" type="button" id="logout-btn">Выйти</button></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="sb-page">
+    <div class="trainer-layout">
+      <div class="trainer-main">
+        <section class="sb-surface chat-panel" aria-label="Чат переговоров">
+          <header class="chat-panel__header">
+            <div>
+              <h1 class="chat-panel__title" id="chat-scenario-title">Сценарий не выбран</h1>
+              <p class="chat-panel__subtitle" id="chat-scenario-desc">Выберите сценарий справа, чтобы начать тренировку</p>
+            </div>
+            <span class="chat-panel__status" id="chat-status">
+              <span class="chat-panel__status-dot" aria-hidden="true"></span>
+              <span id="chat-status-text">Готов к диалогу</span>
+            </span>
+          </header>
+
+          <div class="chat-messages" id="chat-messages" role="log" aria-live="polite">
+            <div class="chat-empty" id="chat-empty">
+              <div class="chat-empty__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+              Выберите режим и сценарий. Можно писать или диктовать сообщение.
+            </div>
+          </div>
+          <div class="typing-indicator" id="typing-indicator" hidden>
+            <span></span><span></span><span></span>
+            <em id="typing-label">Собеседник печатает…</em>
+          </div>
+
+          <form class="chat-composer" id="chat-form" autocomplete="off">
+            <input
+              class="sb-input chat-composer__field"
+              type="text"
+              id="chat-input"
+              name="message"
+              placeholder="Введите сообщение или нажмите на микрофон…"
+              aria-label="Текст сообщения"
+            >
+            <button class="sb-btn sb-btn--icon chat-composer__mic" type="button" id="voice-btn" title="Голосовой ввод" aria-label="Голосовой ввод" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+            </button>
+            <button class="sb-btn sb-btn--icon chat-composer__send" type="submit" id="send-btn" title="Отправить" aria-label="Отправить сообщение">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </form>
+          <p class="chat-composer__hint" id="voice-hint" hidden></p>
+          <p class="turn-timer" id="turn-timer" hidden></p>
+        </section>
+
+        <section class="sb-surface difficulty" id="difficulty-section" aria-label="Уровень сложности">
+          <h2 class="difficulty__label">Сложность переговоров</h2>
+          <div class="difficulty__row" role="group" aria-label="Выбор сложности" id="difficulty-row">
+            <button type="button" class="difficulty__btn difficulty__btn--easy difficulty__btn--active" data-difficulty="easy" aria-pressed="true">Лёгкая</button>
+            <button type="button" class="difficulty__btn difficulty__btn--medium" data-difficulty="medium" aria-pressed="false">Средняя</button>
+            <button type="button" class="difficulty__btn difficulty__btn--hard" data-difficulty="hard" aria-pressed="false">Сложная</button>
+          </div>
+          <div class="difficulty__row is-hidden" id="finish-row" hidden>
+            <button type="button" class="difficulty__btn difficulty__btn--hard" id="finish-btn" style="margin-top: 0.65rem">Завершить переговоры</button>
+          </div>
+        </section>
+
+        <section class="sb-surface type_speech" id="mode-section" aria-label="Тип переговоров">
+          <h2 class="type__label">Тип переговоров</h2>
+          <div class="type__row" role="group" aria-label="Выбор типа">
+            <button type="button" class="type__btn type__btn--human" data-mode="human" aria-pressed="false">С реальным человеком</button>
+            <button type="button" class="type__btn type__btn--neuro type__btn--active" data-mode="ai" aria-pressed="true">С нейросетью</button>
+          </div>
+          <div class="search-panel" id="search-panel" hidden>
+            <div class="search-spinner" aria-hidden="true"></div>
+            <p class="search-panel__text">Ищем оппонента…</p>
+            <button type="button" class="sb-btn sb-btn--ghost" id="cancel-search-btn">Отменить поиск</button>
+          </div>
+        </section>
+      </div>
+
+      <aside class="sb-surface scenarios" id="scenarios-panel" aria-label="Сценарии переговоров">
+        <div class="scenarios__header">
+          <h2 class="scenarios__title">Сценарии</h2>
+          <p class="scenarios__hint">Доступны первые сценарии · остальные откроются позже</p>
+        </div>
+        <ul class="scenarios__list" id="scenarios-list"></ul>
+      </aside>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/script.js"></script>
+</body>
+</html>

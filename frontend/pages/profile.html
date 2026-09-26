@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Профиль — Speech-Battle</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="js/auth-gate.js" data-sb-gate="user"></script>
+</head>
+<body>
+  <nav class="sb-nav" aria-label="Основная навигация">
+    <div class="sb-nav__inner">
+      <a class="sb-nav__brand" href="index.html">
+        <img src="assets/media/logo.png" alt="">
+        Speech-Battle
+      </a>
+      <button class="sb-nav__toggle" type="button" id="nav-toggle" aria-label="Открыть меню">☰</button>
+      <ul class="sb-nav__links" id="nav-links">
+        <li><a class="sb-nav__link" href="index.html">Главная</a></li>
+        <li><a class="sb-nav__link" href="history.html">История переговоров</a></li>
+        <li><a class="sb-nav__link sb-nav__link--active" href="profile.html">Профиль</a></li>
+        <li><button class="sb-nav__link sb-nav__link--btn" type="button" id="logout-btn">Выйти</button></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="sb-page">
+    <section class="sb-surface profile-hero">
+      <div class="profile-hero__top">
+        <div>
+          <p class="profile-kicker">Личный кабинет</p>
+          <h1 class="profile-name" id="profile-name">—</h1>
+          <p class="profile-status">Статус аккаунта: <strong id="profile-status">—</strong></p>
+        </div>
+        <button class="sb-btn sb-btn--icon profile-edit-btn" type="button" id="edit-toggle" title="Редактировать">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="profile-grid" id="profile-view">
+        <div class="profile-stat">
+          <span class="profile-stat__label">Юзернейм</span>
+          <span class="profile-stat__value" id="profile-username">—</span>
+        </div>
+        <div class="profile-stat">
+          <span class="profile-stat__label">Почта</span>
+          <span class="profile-stat__value" id="profile-email">—</span>
+        </div>
+        <div class="profile-stat">
+          <span class="profile-stat__label">Возраст</span>
+          <span class="profile-stat__value" id="profile-age">0</span>
+        </div>
+      </div>
+
+      <form class="auth-form profile-edit" id="profile-edit" hidden>
+        <label class="sb-field"><span>Имя</span><input class="sb-input" name="full_name" required></label>
+        <label class="sb-field"><span>Юзернейм</span><input class="sb-input" name="username" required></label>
+        <label class="sb-field"><span>Почта</span><input class="sb-input" type="email" name="email" required></label>
+        <label class="sb-field"><span>Возраст</span><input class="sb-input" type="number" name="age" min="14" max="100" required></label>
+        <label class="sb-field"><span>Новый пароль (необязательно)</span><input class="sb-input" type="password" name="password" minlength="6"></label>
+        <p class="form-error" id="profile-error" hidden></p>
+        <div class="profile-edit__actions">
+          <button class="sb-btn sb-btn--primary" type="submit">Сохранить</button>
+          <button class="sb-btn sb-btn--ghost" type="button" id="edit-cancel">Отмена</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="profile-metrics">
+      <div class="sb-surface score-card">
+        <h2 class="sb-heading sb-heading--sm">Общая оценка успешности</h2>
+        <div class="score-ring">
+          <span class="score-ring__value" id="score-value">0</span>
+          <span class="score-ring__max">/ 100</span>
+        </div>
+      </div>
+      <div class="sb-surface chart-card">
+        <h2 class="sb-heading sb-heading--sm">Баллы за неделю</h2>
+        <canvas id="week-chart" width="640" height="240" aria-label="График баллов"></canvas>
+        <p class="chart-empty" id="chart-empty" hidden>Пока нет оценённых переговоров за неделю</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>

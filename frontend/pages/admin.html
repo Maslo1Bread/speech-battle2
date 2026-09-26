@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Переговоры на проверку — Admin</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="js/auth-gate.js" data-sb-gate="admin"></script>
+</head>
+<body>
+  <nav class="sb-nav">
+    <div class="sb-nav__inner">
+      <a class="sb-nav__brand" href="admin.html">
+        <img src="assets/media/logo.png" alt="">
+        Speech-Battle Admin
+      </a>
+      <button class="sb-nav__toggle" type="button" id="nav-toggle">☰</button>
+      <ul class="sb-nav__links" id="nav-links">
+        <li><a class="sb-nav__link sb-nav__link--active" href="admin.html">Переговоры на проверку</a></li>
+        <li><a class="sb-nav__link" href="admin-users.html">Администрирование пользователей</a></li>
+        <li><a class="sb-nav__link" href="admin-profile.html">Профиль</a></li>
+        <li><button class="sb-nav__link sb-nav__link--btn" type="button" id="logout-btn">Выйти</button></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="sb-page history-layout">
+    <section class="sb-surface history-list-panel">
+      <header class="scenarios__header">
+        <h1 class="scenarios__title">Переговоры на проверку</h1>
+        <p class="scenarios__hint">Оцените каждого участника отдельно (1–100)</p>
+      </header>
+      <ul class="history-list" id="review-list"></ul>
+    </section>
+    <section class="sb-surface history-detail" id="review-detail">
+      <div class="chat-empty">Выберите чат для проверки</div>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

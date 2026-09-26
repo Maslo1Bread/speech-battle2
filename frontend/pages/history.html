@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>История переговоров — Speech-Battle</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="js/auth-gate.js" data-sb-gate="user"></script>
+</head>
+<body>
+  <nav class="sb-nav">
+    <div class="sb-nav__inner">
+      <a class="sb-nav__brand" href="index.html">
+        <img src="assets/media/logo.png" alt="">
+        Speech-Battle
+      </a>
+      <button class="sb-nav__toggle" type="button" id="nav-toggle" aria-label="Открыть меню">☰</button>
+      <ul class="sb-nav__links" id="nav-links">
+        <li><a class="sb-nav__link" href="index.html">Главная</a></li>
+        <li><a class="sb-nav__link sb-nav__link--active" href="history.html">История переговоров</a></li>
+        <li><a class="sb-nav__link" href="profile.html">Профиль</a></li>
+        <li><button class="sb-nav__link sb-nav__link--btn" type="button" id="logout-btn">Выйти</button></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="sb-page history-layout">
+    <section class="sb-surface history-list-panel">
+      <header class="scenarios__header">
+        <h1 class="scenarios__title">История переговоров</h1>
+        <p class="scenarios__hint">Откройте чат, чтобы посмотреть переписку и оценку</p>
+      </header>
+      <ul class="history-list" id="history-list"></ul>
+    </section>
+
+    <section class="sb-surface history-detail" id="history-detail">
+      <div class="chat-empty">
+        <div class="chat-empty__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        Выберите переговоры слева
+      </div>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/history.js"></script>
+</body>
+</html>

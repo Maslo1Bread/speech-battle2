@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Регистрация — Speech-Battle</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="sb-nav">
+    <div class="sb-nav__inner">
+      <a class="sb-nav__brand" href="auth.html">
+        <img src="assets/media/logo.png" alt="">
+        Speech-Battle
+      </a>
+    </div>
+  </nav>
+
+  <main class="sb-page sb-page--narrow">
+    <section class="sb-surface auth-card">
+      <h1 class="sb-heading sb-heading--md">Регистрация</h1>
+      <p class="auth-card__hint">Создайте аккаунт для тренировок переговоров</p>
+      <form id="register-form" class="auth-form">
+        <label class="sb-field">
+          <span>Имя</span>
+          <input class="sb-input" name="full_name" required minlength="2">
+        </label>
+        <label class="sb-field">
+          <span>Юзернейм</span>
+          <input class="sb-input" name="username" required minlength="3" autocomplete="username">
+        </label>
+        <label class="sb-field">
+          <span>Почта</span>
+          <input class="sb-input" type="email" name="email" required autocomplete="email">
+        </label>
+        <label class="sb-field">
+          <span>Возраст</span>
+          <input class="sb-input" type="number" name="age" required min="14" max="100">
+        </label>
+        <label class="sb-field">
+          <span>Пароль</span>
+          <input class="sb-input" type="password" name="password" required minlength="6" autocomplete="new-password">
+        </label>
+        <p class="form-error" id="register-error" hidden></p>
+        <button class="sb-btn sb-btn--primary auth-form__submit" type="submit">Создать аккаунт</button>
+      </form>
+      <p class="auth-card__footer">
+        Уже есть аккаунт? <a href="auth.html">Войти</a>
+      </p>
+    </section>
+  </main>
+  <script src="js/api.js"></script>
+  <script src="js/register.js"></script>
+</body>
+</html>
