@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 
-from .config import FRONTEND_DIR, get_settings
+from .config import FRONTEND_DIR, ROOT_DIR, get_settings
 from .database import Base, SessionLocal, engine
 from .models import User
 from .routers import admin, auth, negotiations, ws
@@ -97,7 +97,7 @@ def create_app() -> FastAPI:
 
     @app.get("/index.html")
     def index_page():
-        return page("index.html")
+        return file_or_404(ROOT_DIR / "index.html", "text/html")
 
     @app.get("/auth.html")
     def auth_page():

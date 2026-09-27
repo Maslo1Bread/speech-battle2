@@ -48,9 +48,10 @@
 ## Структура репозитория
 
 ```
+index.html              главная арена (отдаётся как /index.html)
 backend/app/            FastAPI-приложение, модели, роутеры, сервисы
 backend/scenarios/      JSON-сценарии переговоров
-frontend/pages/         HTML-страницы
+frontend/pages/         остальные HTML-страницы
 frontend/css/           стили
 frontend/js/            клиентские скрипты
 frontend/assets/        логотип и шрифты
