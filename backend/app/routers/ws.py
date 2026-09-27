@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-from datetime import timedelta
-
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
-from ..config import get_settings
 from ..database import SessionLocal
-from ..models import Message, Negotiation, User
+from ..models import Negotiation, User
 from ..security import decode_access_token
-from ..services.matchmaking import QueueEntry, hub
+from ..services.human_match import cancel_search, search_or_match
+from ..services.matchmaking import hub
 from ..services.scenarios import get_scenario
-from ..services.scoring import utcnow
 
 router = APIRouter(tags=["ws"])
 
@@ -68,61 +65,19 @@ async def websocket_endpoint(websocket: WebSocket):
                     continue
 
                 await websocket.send_json({"type": "searching", "scenario_id": scenario_id})
-                matched = await hub.enqueue(
-                    QueueEntry(
-                        user_id=user.id,
-                        scenario_id=scenario_id,
-                        difficulty=difficulty,
-                        websocket=websocket,
-                    )
-                )
-                if not matched:
+                result = search_or_match(db, user.id, scenario_id, difficulty)
+                if result.get("status") != "matched":
                     continue
 
-                # создаём переговоры для пары
-                settings = get_settings()
-                neg = Negotiation(
-                    mode="human",
-                    difficulty=difficulty,
-                    scenario_id=scenario["id"],
-                    scenario_title=scenario["name"],
-                    status="active",
-                    participant1_id=matched.user_id,
-                    participant2_id=user.id,
-                    current_turn_user_id=matched.user_id,
-                    turn_deadline=utcnow() + timedelta(seconds=settings.turn_seconds),
-                )
-                db.add(neg)
-                db.commit()
-                db.refresh(neg)
-
-                opener = Message(
-                    negotiation_id=neg.id,
-                    sender_id=None,
-                    sender_type="system",
-                    content=f"Оппонент найден. Сценарий: {scenario['name']}. На ход — 2 минуты.",
-                )
-                db.add(opener)
-                db.commit()
-
-                await hub.bind_room(neg.id, [matched.user_id, user.id])
-                payload = {
-                    "type": "matched",
-                    "negotiation_id": neg.id,
-                    "scenario_id": scenario["id"],
-                    "scenario_title": scenario["name"],
-                    "difficulty": difficulty,
-                    "participant1_id": neg.participant1_id,
-                    "participant2_id": neg.participant2_id,
-                    "current_turn_user_id": neg.current_turn_user_id,
-                    "turn_deadline": neg.turn_deadline.isoformat() if neg.turn_deadline else None,
-                    "system_message": opener.content,
-                }
-                await hub.send_to_user(matched.user_id, payload)
-                await hub.send_to_user(user.id, payload)
+                payload = {k: v for k, v in result.items() if k != "status"}
+                payload["type"] = "matched"
+                await hub.bind_room(result["negotiation_id"], [result["participant1_id"], result["participant2_id"]])
+                await hub.send_to_user(result["participant1_id"], payload)
+                await hub.send_to_user(result["participant2_id"], payload)
 
             elif action == "cancel_search":
-                cancelled = await hub.cancel(user.id)
+                cancelled = cancel_search(db, user.id)
+                await hub.cancel(user.id)
                 await websocket.send_json({"type": "search_cancelled", "ok": cancelled})
 
             elif action == "typing":

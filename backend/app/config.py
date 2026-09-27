@@ -1,16 +1,19 @@
 from functools import lru_cache
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT_DIR / "frontend"
 
+load_dotenv(ROOT_DIR / ".env")
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(str(ROOT_DIR / ".env"), str(ROOT_DIR / ".env.example")),
+        env_file=str(ROOT_DIR / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )

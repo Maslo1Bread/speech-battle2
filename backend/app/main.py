@@ -80,8 +80,20 @@ def create_app() -> FastAPI:
         app.mount("/js", StaticFiles(directory=str(js_dir)), name="js")
 
     @app.get("/api/health")
-    def health():
-        return {"status": "ok"}
+    def health(probe: bool = False):
+        from .services import ai_opponent
+
+        live = get_settings()
+        if probe:
+            ai_opponent.probe_llm()
+        return {
+            "status": "ok",
+            "groq_configured": bool((live.groq_api_key or "").strip()),
+            "groq_ok": ai_opponent.last_groq_ok,
+            "groq_error": ai_opponent.last_groq_error,
+            "llm_provider": ai_opponent.last_llm_provider,
+            "groq_cooldown": ai_opponent._groq_on_cooldown(),
+        }
 
     def page(name: str) -> FileResponse:
         return file_or_404(pages_dir / name, "text/html")

@@ -20,6 +20,9 @@ const state = {
   searching: false,
   matchedHuman: false,
   ws: null,
+  wsRetries: 0,
+  pollTimer: null,
+  lastPolledMsgId: 0,
   typingTimer: null,
   turnTimerInterval: null,
   aiStartedByButton: false,
@@ -43,6 +46,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     state.me = await SB.api("/api/auth/me");
     await loadScenarios();
     connectWs();
+    startRealtimePoll();
     setComposerEnabled(true);
   } catch (err) {
     console.error(err);
@@ -523,11 +527,134 @@ function sendTyping(isTyping) {
   );
 }
 
+function startRealtimePoll() {
+  if (state.pollTimer) return;
+  state.pollTimer = setInterval(() => {
+    pollRealtime();
+  }, 1600);
+}
+
+async function pollRealtime() {
+  try {
+    if (state.searching && !state.matchedHuman) {
+      const status = await SB.api("/api/negotiations/human/status");
+      if (status.status === "matched") {
+        applyMatchedEvent(status);
+        return;
+      }
+      if (status.status === "finished" && status.negotiation_id) {
+        applyFinishedEvent(status);
+      }
+    }
+    if (state.matchedHuman && state.negotiationId) {
+      const neg = await SB.api(`/api/negotiations/${state.negotiationId}`);
+      syncHumanNegotiation(neg);
+    }
+  } catch {
+    // Хостинг может кратковременно рвать запросы — следующий тик повторит.
+  }
+}
+
+function applyMatchedEvent(data) {
+  if (state.matchedHuman && state.negotiationId === data.negotiation_id) return;
+  state.searching = false;
+  state.matchedHuman = true;
+  state.mode = "human";
+  state.negotiationId = data.negotiation_id;
+  state.negotiation = {
+    id: data.negotiation_id,
+    mode: "human",
+    status: "active",
+    messages: [],
+    current_turn_user_id: data.current_turn_user_id,
+    turn_deadline: data.turn_deadline,
+  };
+  showSearchPanel(false);
+  hideTyping();
+  enterHumanMatchUi(data);
+  setStatus("Оппонент найден");
+  resetMessages();
+  if (data.system_message) {
+    appendMessage({ content: data.system_message, system: true });
+    state.negotiation.messages = [{ sender_type: "system", content: data.system_message }];
+  }
+  updateFinishVisibility();
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    state.ws.send(JSON.stringify({ action: "join_room", negotiation_id: data.negotiation_id }));
+  }
+  updateTurnTimer({
+    current_turn_user_id: data.current_turn_user_id,
+    turn_deadline: data.turn_deadline,
+    status: "active",
+    mode: "human",
+  });
+}
+
+function applyFinishedEvent(data) {
+  if (data.negotiation_id && state.negotiationId && data.negotiation_id !== state.negotiationId) return;
+  hideTyping();
+  appendMessage({
+    content:
+      data.reason === "timeout"
+        ? "Время хода истекло. Чат отправлен на проверку."
+        : "Переговоры завершены и отправлены на проверку.",
+    system: true,
+  });
+  setStatus("На проверке");
+  exitHumanMatchUi();
+  stopTurnTimer();
+  if (state.negotiation) state.negotiation.status = data.status || "pending_review";
+}
+
+function syncHumanNegotiation(neg) {
+  if (!neg) return;
+  if (neg.status && neg.status !== "active") {
+    if (state.matchedHuman) {
+      applyFinishedEvent({
+        negotiation_id: neg.id,
+        reason: "manual",
+        status: neg.status,
+      });
+    }
+    return;
+  }
+  const previous = state.negotiation?.messages || [];
+  const known = new Set(previous.map((m) => m.id).filter(Boolean));
+  const incoming = neg.messages || [];
+  if (!previous.length && incoming.length) {
+    applyNegotiation(neg, { redraw: true });
+    return;
+  }
+  for (const message of incoming) {
+    if (message.id && known.has(message.id)) continue;
+    if (message.sender_id === state.me?.id && message.sender_type === "user") {
+      known.add(message.id);
+      continue;
+    }
+    if (message.sender_type === "system" && previous.some((m) => m.content === message.content)) {
+      continue;
+    }
+    hideTyping();
+    appendMessage({
+      content: message.content,
+      mine: false,
+      system: message.sender_type === "system",
+      animate: message.sender_type !== "system",
+      createdAt: message.created_at,
+    });
+  }
+  state.negotiation = neg;
+  state.negotiationId = neg.id;
+  updateFinishVisibility();
+  updateTurnTimer(neg);
+}
+
 function connectWs() {
   const ws = new WebSocket(SB.wsUrl());
   state.ws = ws;
 
   ws.addEventListener("open", () => {
+    state.wsRetries = 0;
     ws.send(JSON.stringify({ type: "auth", token: SB.token }));
   });
 
@@ -540,7 +667,6 @@ function connectWs() {
     }
 
     if (data.type === "ready") {
-      // Сокет готов — UI поиска не трогаем, пока нет action=search
       return;
     }
 
@@ -558,37 +684,7 @@ function connectWs() {
     }
 
     if (data.type === "matched") {
-      state.searching = false;
-      state.matchedHuman = true;
-      state.mode = "human";
-      state.negotiationId = data.negotiation_id;
-      state.negotiation = {
-        id: data.negotiation_id,
-        mode: "human",
-        status: "active",
-        messages: [],
-        current_turn_user_id: data.current_turn_user_id,
-        turn_deadline: data.turn_deadline,
-      };
-      showSearchPanel(false);
-      hideTyping();
-      enterHumanMatchUi(data);
-      setStatus("Оппонент найден");
-      resetMessages();
-      if (data.system_message) {
-        appendMessage({ content: data.system_message, system: true });
-        state.negotiation.messages = [
-          { sender_type: "system", content: data.system_message },
-        ];
-      }
-      updateFinishVisibility();
-      ws.send(JSON.stringify({ action: "join_room", negotiation_id: data.negotiation_id }));
-      updateTurnTimer({
-        current_turn_user_id: data.current_turn_user_id,
-        turn_deadline: data.turn_deadline,
-        status: "active",
-        mode: "human",
-      });
+      applyMatchedEvent(data);
     }
 
     if (data.type === "message" && data.negotiation_id === state.negotiationId) {
@@ -636,17 +732,7 @@ function connectWs() {
     }
 
     if (data.type === "finished" && data.negotiation_id === state.negotiationId) {
-      hideTyping();
-      appendMessage({
-        content:
-          data.reason === "timeout"
-            ? "Время хода истекло. Чат отправлен на проверку."
-            : "Переговоры завершены и отправлены на проверку.",
-        system: true,
-      });
-      setStatus("На проверке");
-      exitHumanMatchUi();
-      stopTurnTimer();
+      applyFinishedEvent(data);
     }
 
     if (data.type === "error") {
@@ -655,7 +741,11 @@ function connectWs() {
   });
 
   ws.addEventListener("close", () => {
-    setTimeout(connectWs, 2000);
+    state.ws = null;
+    if (state.wsRetries < 1) {
+      state.wsRetries += 1;
+      setTimeout(connectWs, 5000);
+    }
   });
 }
 
@@ -664,22 +754,37 @@ async function startHumanSearch() {
     setHint("Сначала выберите сценарий");
     return false;
   }
-  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
-    setHint("Соединение ещё устанавливается, подождите секунду…");
-    return false;
-  }
   state.searching = true;
   state.mode = "human";
   showSearchPanel(true);
   setStatus("Поиск оппонента…");
-  state.ws.send(
-    JSON.stringify({
-      action: "search",
-      scenario_id: state.scenarioId,
-      difficulty: state.difficulty,
-    }),
-  );
-  return true;
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    state.ws.send(
+      JSON.stringify({
+        action: "search",
+        scenario_id: state.scenarioId,
+        difficulty: state.difficulty,
+      }),
+    );
+  }
+  try {
+    const result = await SB.api("/api/negotiations/human/search", {
+      method: "POST",
+      body: JSON.stringify({
+        scenario_id: state.scenarioId,
+        difficulty: state.difficulty,
+      }),
+    });
+    if (result.status === "matched") {
+      applyMatchedEvent(result);
+    }
+    return true;
+  } catch (err) {
+    state.searching = false;
+    showSearchPanel(false);
+    setHint(err.message || "Не удалось начать поиск оппонента");
+    return false;
+  }
 }
 
 function cancelHumanSearch() {
@@ -688,6 +793,7 @@ function cancelHumanSearch() {
   if (state.ws && state.ws.readyState === WebSocket.OPEN) {
     state.ws.send(JSON.stringify({ action: "cancel_search" }));
   }
+  SB.api("/api/negotiations/human/cancel", { method: "POST" }).catch(() => {});
 }
 
 function showSearchPanel(show) {

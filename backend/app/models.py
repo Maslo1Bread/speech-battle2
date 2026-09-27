@@ -82,6 +82,18 @@ class Message(Base):
     negotiation: Mapped[Negotiation] = relationship(back_populates="messages")
 
 
+class MatchTicket(Base):
+    """Очередь поиска оппонента. Хранится в БД, чтобы работать на shared-хостинге без WebSocket."""
+
+    __tablename__ = "match_tickets"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    scenario_id: Mapped[str] = mapped_column(String(64), index=True)
+    difficulty: Mapped[str] = mapped_column(String(20), default="easy")
+    negotiation_id: Mapped[int | None] = mapped_column(ForeignKey("negotiations.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class ScorePoint(Base):
     __tablename__ = "score_points"
 

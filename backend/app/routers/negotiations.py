@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 from ..config import get_settings
 from ..database import get_db
 from ..deps import get_current_user, user_to_public
-from ..models import Message, Negotiation, ScorePoint, User
+from ..models import MatchTicket, Message, Negotiation, ScorePoint, User
 from ..schemas import (
     MessageOut,
     NegotiationListItem,
@@ -19,6 +19,7 @@ from ..schemas import (
     StartAiRequest,
 )
 from ..services.ai_opponent import generate_ai_reply, is_on_topic, off_topic_warning
+from ..services.human_match import cancel_search, search_or_match, search_status
 from ..services.matchmaking import hub
 from ..services.scenarios import get_scenario, list_scenarios_for_ui
 from ..services.scoring import as_utc, utcnow
@@ -396,6 +397,13 @@ async def _finish_negotiation(db: Session, neg: Negotiation, reason: str) -> Non
     db.add(system)
     db.add(neg)
     db.commit()
+    for uid in (neg.participant1_id, neg.participant2_id):
+        if not uid:
+            continue
+        ticket = db.get(MatchTicket, uid)
+        if ticket and ticket.negotiation_id == neg.id:
+            db.delete(ticket)
+    db.commit()
     await hub.broadcast(
         neg.id,
         {
@@ -407,20 +415,34 @@ async def _finish_negotiation(db: Session, neg: Negotiation, reason: str) -> Non
     )
 
 
-@router.post("/human/match")
-async def create_or_join_match(
+@router.post("/human/search")
+def human_search(
     payload: StartAiRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """REST-заглушка: фактический матчмейкинг идёт через WebSocket."""
+    """Поиск оппонента через HTTP — работает на shared-хостинге без WebSocket."""
     _ensure_user(user)
-    scenario = get_scenario(payload.scenario_id)
-    if not scenario:
-        raise HTTPException(status_code=400, detail="Сценарий недоступен")
-    return {
-        "ok": True,
-        "scenario_id": scenario["id"],
-        "difficulty": payload.difficulty,
-        "hint": "Подключитесь к /ws и отправьте action=search",
-    }
+    result = search_or_match(db, user.id, payload.scenario_id, payload.difficulty)
+    if result.get("status") == "error":
+        raise HTTPException(status_code=400, detail=result.get("detail") or "Ошибка поиска")
+    return result
+
+
+@router.get("/human/status")
+def human_search_status(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _ensure_user(user)
+    return search_status(db, user.id)
+
+
+@router.post("/human/cancel")
+def human_cancel(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _ensure_user(user)
+    cancelled = cancel_search(db, user.id)
+    return {"ok": cancelled, "status": "search_cancelled"}
